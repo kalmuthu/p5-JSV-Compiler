@@ -1,0 +1,4 @@
+name = "JSV-Compiler"
+# badges = ["travis"]
+module_maker="ModuleBuildTiny"
+
