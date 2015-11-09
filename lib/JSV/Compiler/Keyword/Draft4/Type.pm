@@ -7,7 +7,7 @@ use Carp qw(croak);
 use JSV::Compiler::Keyword qw(:constants);
 
 sub instance_type() { INSTANCE_TYPE_ANY(); }
-sub keyword() { "type" }
+sub keyword() { 'type' }
 sub keyword_priority() { 10; }
 
 sub generate_code {

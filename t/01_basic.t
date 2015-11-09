@@ -7,7 +7,14 @@ use JSV::Compiler;
 
 subtest "basic" => sub {
     my $compiler = JSV::Compiler->new();
-    my $validator = $compiler->compile(+{ type => "object" });
+    my $validator = $compiler->compile(+{
+        type       => "object",
+        properties => {
+            "foo" => {
+                type => "number",
+            },
+        },
+    });
     note 'compiled code: ', $validator->{validator_code};
     my $ret = $validator->validate(+{ foo => 1 });
     ok $ret or note explain $ret;

@@ -25,6 +25,12 @@ sub generate_code {
         next unless exists $schema->{$keyword->keyword};
         push @codes, $keyword->generate_code($self, $schema);
     }
+    push @codes, q[ if (ref($instance) eq 'HASH') { ];
+    for my $keyword (@{ $self->keywords->{INSTANCE_TYPE_OBJECT()} }) {
+        next unless exists $schema->{$keyword->keyword};
+        push @codes, $keyword->generate_code($self, $schema);
+    }
+    push @codes, q[ } ];
 
     return join "\n", @codes;
 }
