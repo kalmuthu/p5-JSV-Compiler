@@ -11,7 +11,7 @@ sub new {
 
     my $validator_proc = eval $args{validator_code};
     if (my $e = $@) {
-        croak $@;
+        croak $e . "\n" . "$args{validator_code}";
     }
 
     bless +{

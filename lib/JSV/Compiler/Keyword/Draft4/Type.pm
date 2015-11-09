@@ -15,31 +15,47 @@ sub generate_code {
 
     my $keyword_value = $class->keyword_value($schema);
 
-    # TODO: 型の判定は Keywords 共通なので先にまとめてやる
+    if (ref($keyword_value) eq 'ARRAY') {
+        my $pred = join '||', map {
+            '(' . $class->generate_singular_type_pred($compiler_context, $_) . ')'
+        } @$keyword_value;
+        return qq{
+            unless ($pred) {
+                \$context->log_error("instance type doesn't match schema type list");
+            }
+        };
+    } else {
+        my $pred = $class->generate_singular_type_pred($compiler_context, $keyword_value);
+        return qq{
+            unless ($pred) {
+                \$context->log_error("instance type doesn't match schema type");
+            }
+        };
+    }
+}
 
-    my $pred = do {
-        if ($keyword_value eq 'array') {
+# TODO: 型の判定は Keywords 共通なので先にまとめてやる
+sub generate_singular_type_pred {
+    my ($class, $compiler_context, $schema_type) = @_;
+
+    return do {
+        if ($schema_type eq 'array') {
             q{ ref($instance) eq 'ARRAY' };
-        } elsif ($keyword_value eq 'boolean') {
+        } elsif ($schema_type eq 'boolean') {
             q{ JSON::is_bool($instance) };
-        } elsif ($keyword_value eq 'integer') {
+        } elsif ($schema_type eq 'integer') {
             q{ (B::svref_2object(\$instance)->FLAGS & B::SVp_IOK) == B::SVp_IOK };
-        } elsif ($keyword_value eq 'number') {
-            q{ (B::svref_2object(\$instance)->FLAGS & B::SVp_NOK) == B::SVp_NOK };
-        } elsif ($keyword_value eq 'null') {
+        } elsif ($schema_type eq 'number') {
+            q{ ((B::svref_2object(\$instance)->FLAGS & B::SVp_NOK) == B::SVp_NOK ||
+                (B::svref_2object(\$instance)->FLAGS & B::SVp_IOK) == B::SVp_IOK) };
+        } elsif ($schema_type eq 'null') {
             q{ ! defined($instance) };
-        } elsif ($keyword_value eq 'object') {
+        } elsif ($schema_type eq 'object') {
             q{ ref($instance) eq 'HASH' };
-        } elsif ($keyword_value eq 'string') {
+        } elsif ($schema_type eq 'string') {
             q{ (B::svref_2object(\$instance)->FLAGS & B::SVp_POK) == B::SVp_POK };
         } else {
-            croak "unknown type: $keyword_value";
-        }
-    };
-
-    return qq{
-        unless ($pred) {
-            \$context->log_error("instance type doesn't match schema type");
+            croak "unknown type: $schema_type";
         }
     };
 }
