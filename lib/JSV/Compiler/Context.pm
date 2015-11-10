@@ -2,15 +2,26 @@ package JSV::Compiler::Context;
 use strict;
 use warnings;
 
+use JSON;
 use JSV::Compiler::Keyword qw(:constants);
 
 use Class::Accessor::Lite (
-    new => 1,
+    new => 0,
     ro  => [qw/
         keywords
+        json
         loose_type
     /],
 );
+
+sub new {
+    my ($class, %args) = @_;
+
+    bless +{
+        json => JSON->new->allow_nonref->canonical,
+        %args,
+    }, $class;
+}
 
 # TODO: $schema を解釈し、それぞれの keyword に対する code を emit する。
 # priority は最初は考えなくてよい。

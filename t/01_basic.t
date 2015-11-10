@@ -12,6 +12,7 @@ subtest "basic" => sub {
         properties => {
             "foo" => {
                 type => "number",
+                enum => [1, 2],
             },
         },
         required   => ['foo'],

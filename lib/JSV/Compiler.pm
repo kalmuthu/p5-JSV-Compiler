@@ -98,6 +98,7 @@ sub compile {
 
     my $validator_code = qq{
         use JSON;
+        use List::MoreUtils qw(firstidx);
         sub {
             my (\$context, \$instance) = \@_;
             $code
