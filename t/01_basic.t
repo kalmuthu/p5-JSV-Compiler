@@ -14,6 +14,7 @@ subtest "basic" => sub {
                 type => "number",
             },
         },
+        required   => ['foo'],
     });
     note 'compiled code: ', $validator->{validator_code};
     my $ret = $validator->validate(+{ foo => 1 });
