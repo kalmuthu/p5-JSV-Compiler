@@ -15,31 +15,36 @@ sub keyword_priority() { 5; }
 sub generate_code {
     my ($class, $compiler_context, $schema) = @_;
 
-    my $ref_uri = $class->keyword_value($schema);
+    my $ref_uri = URI->new($class->keyword_value($schema));
 
-    my $ref_schema = eval {
-        $compiler_context->reference->get_schema(
-            URI->new($ref_uri),
-            +{
-                base_uri => $compiler_context->original_schema->{id},
-                root     => $compiler_context->original_schema,
-            }
-        );
-    };
-    if (my $e = $@) {
-        croak $e;
+    my $base_uri = $compiler_context->original_schema->{id};
+    my $root     = $compiler_context->original_schema;
+
+    unless ($ref_uri->scheme) {
+        $ref_uri = $ref_uri->abs($base_uri);
     }
 
-    my $code = $compiler_context->generate_code($ref_schema);
-    $compiler_context->register_code($ref_uri, $code, +{
-        base_uri => $compiler_context->original_schema->{id},
-    });
+    unless ($compiler_context->is_registered_code($ref_uri)) {
+        my $ref_schema = eval {
+            $compiler_context->reference->get_schema(
+                URI->new($ref_uri),
+                +{
+                    base_uri => $base_uri,
+                    root     => $root,
+                }
+            );
+        };
+        if (my $e = $@) {
+            croak $e;
+        }
 
-    my $ref_uri_literal = to_perl_literal($ref_uri);
+        my $code = $compiler_context->generate_code($ref_schema);
+        $compiler_context->register_code($ref_uri, $code);
+    }
 
     return sprintf(q{
         $validator_proc->($context, $instance, %s);
-    }, $ref_uri_literal);
+    }, to_perl_literal($ref_uri));
 }
 
 1;

@@ -3,7 +3,6 @@ use strict;
 use warnings;
 
 use JSON;
-use URI;
 use JSV::Compiler::Keyword qw(:constants);
 
 use Class::Accessor::Lite (
@@ -47,16 +46,17 @@ sub generate_code {
     return join "\n", @codes;
 }
 
+sub is_registered_code {
+    my ($self, $uri) = @_;
+    
+    return $self->registered_code_map->{$uri};
+    
+}
+
 sub register_code {
-    my ($self, $uri, $code, $opts) = @_;
+    my ($self, $uri, $code) = @_;
 
-    my $u = URI->new($uri);
-
-    if ( ! $u->scheme && $opts->{base_uri} ) {
-        $u = $u->abs($opts->{base_uri});
-    }
-
-    $self->registered_code_map->{$u->as_string} = $code;
+    $self->registered_code_map->{$uri} = $code;
 }
 
 1;
