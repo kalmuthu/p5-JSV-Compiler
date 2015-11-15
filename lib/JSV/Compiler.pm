@@ -7,6 +7,7 @@ use Module::Pluggable::Object;
 use JSV::Compiler::Context;
 use JSV::Compiler::Keyword qw(:constants);
 use JSV::Compiler::Reference;
+use JSV::Compiler::Util qw(to_perl_literal);
 use JSV::Compiler::Validator;
 
 use Class::Accessor::Lite (
@@ -90,20 +91,40 @@ sub compile {
     };
 
     my $compiler_context = JSV::Compiler::Context->new(
-        keywords   => $keywords,
-        loose_type => $opts->{loose_type},
+        keywords        => $keywords,
+        reference       => $self->reference,
+        original_schema => $schema,
+        loose_type      => $opts->{loose_type},
     );
 
     my $code = $compiler_context->generate_code($schema);
+    my $code_map = +{
+        %{ $compiler_context->registered_code_map },
+        '' => $code,
+    };
 
-    my $validator_code = qq{
+    my $validators_literal = join "\n", map {
+        sprintf(q{
+            %s => sub {
+                my ($context, $instance) = @_;
+                %s
+            },
+        }, to_perl_literal($_), $code_map->{$_})
+    } keys %$code_map;
+
+    my $validator_code = sprintf(q{
         use JSON;
         use List::MoreUtils qw(firstidx);
-        sub {
-            my (\$context, \$instance) = \@_;
-            $code
-        }
-    };
+        use Scalar::Util qw(weaken);
+        my $validator_proc;
+        my $validators = +{ %s };
+        my $ret = $validator_proc = sub {
+            my ($context, $instance, $ref_uri) = @_;
+            $validators->{$ref_uri || ''}->($context, $instance);
+        };
+        weaken $validator_proc;
+        $ret;
+    }, $validators_literal);
 
     return JSV::Compiler::Validator->new(
         validator_code => $validator_code,
@@ -117,12 +138,12 @@ sub _instance_type_keywords {
 
 sub register_schema {
     my $self = shift;
-    self->reference->register_schema(@_);
+    $self->reference->register_schema(@_);
 }
 
 sub unregister_schema {
     my $self = shift;
-    self->reference->unregister_schema(@_);
+    $self->reference->unregister_schema(@_);
 }
 
 1;
